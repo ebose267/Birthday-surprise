@@ -79,11 +79,112 @@
             z-index: 20;
             transition: opacity 0.5s;
         }
+
+        .music-control {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            font-size: 24px;
+        }
+
+        .music-control:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+        }
+
+        .music-control.muted {
+            opacity: 0.5;
+        }
+
+        .start-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            transition: opacity 0.5s;
+        }
+
+        .start-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, #fbbf24, #ec4899);
+            border: none;
+            padding: 20px 40px;
+            border-radius: 50px;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 0 30px rgba(251, 191, 36, 0.5);
+        }
+
+        .start-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 50px rgba(236, 72, 153, 0.8);
+        }
+
+        .visualizer-bar {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+            height: 60px;
+            z-index: 10;
+            opacity: 0.7;
+        }
+
+        .bar {
+            width: 4px;
+            background: linear-gradient(to top, #fbbf24, #ec4899);
+            border-radius: 2px;
+            transition: height 0.1s ease;
+        }
     </style>
+<base target="_blank">
 </head>
 <body>
 
-    <div id="loading">Baking your cake... 🎂</div>
+    <!-- Start Overlay -->
+    <div id="startOverlay" class="start-overlay">
+        <div style="font-size: 4rem; margin-bottom: 20px;">🎂🎉</div>
+        <h2 style="font-family: 'Pacifico', cursive; font-size: 3rem; margin-bottom: 10px; text-align: center;">Happy Birthday Obehi!</h2>
+        <p style="font-size: 1.2rem; opacity: 0.8; margin-bottom: 30px;">Click to start the celebration with music</p>
+        <button class="start-button" onclick="startExperience()">✨ Start Celebration ✨</button>
+    </div>
+
+    <div id="loading" style="display: none;">Loading... 🎂</div>
     
     <div id="canvas-container"></div>
     
@@ -91,13 +192,104 @@
         <h1 class="birthday-title">Happy Birthday</h1>
         <div class="birthday-subtitle">OBEHI 🎉</div>
     </div>
+
+    <!-- Music Visualizer -->
+    <div class="visualizer-bar" id="visualizer"></div>
     
     <div class="instruction">
-        Click anywhere for confetti explosion! 🎊<br>
-        Click & Drag to rotate • Scroll to zoom
+        Click anywhere for confetti! 🎊<br>
+        Drag to rotate • Scroll to zoom
     </div>
 
+    <!-- Music Control -->
+    <button class="music-control" id="musicBtn" onclick="toggleMusic()">🎵</button>
+
+    <!-- Audio: Using your local music.mp3 file -->
+    <audio id="bgMusic" loop preload="auto">
+        <source src="music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+
     <script>
+        // Music Control
+        const music = document.getElementById('bgMusic');
+        const musicBtn = document.getElementById('musicBtn');
+        let isMuted = false;
+        let isPlaying = false;
+
+        // Create visualizer bars
+        const visualizer = document.getElementById('visualizer');
+        const barCount = 20;
+        const bars = [];
+        for(let i = 0; i < barCount; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'bar';
+            bar.style.height = '5px';
+            visualizer.appendChild(bar);
+            bars.push(bar);
+        }
+
+        function startExperience() {
+            document.getElementById('startOverlay').classList.add('hidden');
+            
+            // Try to play music
+            music.volume = 0.4;
+            const playPromise = music.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    isPlaying = true;
+                    console.log('Music started successfully!');
+                }).catch(error => {
+                    console.log('Autoplay prevented:', error);
+                    alert('Please click the 🎵 button to start music!');
+                });
+            }
+            
+            // Start visualizer
+            setInterval(updateVisualizer, 100);
+        }
+
+        function toggleMusic() {
+            if(!isPlaying) {
+                music.play().then(() => {
+                    isPlaying = true;
+                    isMuted = false;
+                    musicBtn.innerHTML = '🎵';
+                    musicBtn.classList.remove('muted');
+                }).catch(error => {
+                    console.log('Play failed:', error);
+                });
+                return;
+            }
+            
+            if(isMuted) {
+                music.volume = 0.4;
+                musicBtn.innerHTML = '🎵';
+                musicBtn.classList.remove('muted');
+                isMuted = false;
+            } else {
+                music.volume = 0;
+                musicBtn.innerHTML = '🔇';
+                musicBtn.classList.add('muted');
+                isMuted = true;
+            }
+        }
+
+        // Simulate visualizer
+        function updateVisualizer() {
+            if(!isMuted && isPlaying) {
+                bars.forEach((bar, i) => {
+                    const height = Math.random() * 50 + 5;
+                    bar.style.height = height + 'px';
+                });
+            } else {
+                bars.forEach(bar => {
+                    bar.style.height = '5px';
+                });
+            }
+        }
+
         // Scene setup
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -108,7 +300,6 @@
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
-        // Controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
@@ -118,7 +309,6 @@
         controls.autoRotate = true;
         controls.autoRotateSpeed = 0.5;
 
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
         scene.add(ambientLight);
 
@@ -133,7 +323,6 @@
         warmLight.position.set(-10, 10, -10);
         scene.add(warmLight);
 
-        // Create starry sky background
         function createStars() {
             const starsGeometry = new THREE.BufferGeometry();
             const starsCount = 3000;
@@ -168,14 +357,12 @@
                 blending: THREE.AdditiveBlending
             });
             
-            const stars = new THREE.Points(starsGeometry, starsMaterial);
-            scene.add(stars);
-            return stars;
+            return new THREE.Points(starsGeometry, starsMaterial);
         }
 
         const stars = createStars();
+        scene.add(stars);
 
-        // Create floating island/ground
         function createFloatingIsland() {
             const islandGroup = new THREE.Group();
             
@@ -229,7 +416,6 @@
         const island = createFloatingIsland();
         scene.add(island);
 
-        // Create 3D Text "23"
         function createNumber23() {
             const group = new THREE.Group();
             
@@ -291,7 +477,6 @@
         const number23 = createNumber23();
         scene.add(number23);
 
-        // Create Cake
         function createCake() {
             const cakeGroup = new THREE.Group();
             
@@ -389,7 +574,6 @@
         const cake = cakeData.group;
         scene.add(cake);
 
-        // SPARKLE TRAILS for "23"
         const sparkleTrails = [];
         function createSparkleTrail() {
             const geometry = new THREE.BufferGeometry();
@@ -439,7 +623,6 @@
             sparkleTrails.push(createSparkleTrail());
         }
 
-        // CONFETTI EXPLOSION SYSTEM
         const confettiParticles = [];
         const confettiColors = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff, 0x00ffff, 0xffa500, 0xff69b4];
         
@@ -480,7 +663,6 @@
             }
         }
 
-        // FIREWORKS SYSTEM
         const fireworks = [];
         function createFirework(x, y, z) {
             const colors = [0xff0040, 0x00ff80, 0x4000ff, 0xff8000, 0xff00ff, 0x00ffff];
@@ -518,12 +700,10 @@
             }
         }
 
-        // BUTTERFLIES (appear when idle)
         const butterflies = [];
         function createButterfly() {
             const group = new THREE.Group();
             
-            // Wings
             const wingShape = new THREE.Shape();
             wingShape.moveTo(0, 0);
             wingShape.quadraticCurveTo(0.5, 0.5, 0.3, 1);
@@ -553,7 +733,6 @@
             group.add(leftWing);
             group.add(rightWing);
             
-            // Body
             const bodyGeo = new THREE.CapsuleGeometry(0.05, 0.3, 4, 8);
             const bodyMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -584,7 +763,6 @@
             butterflies.push(group);
         }
 
-        // MUSICAL NOTES
         const musicalNotes = [];
         const noteSymbols = ['♪', '♫', '♩', '♬', '♭', '♮', '♯'];
         
@@ -629,7 +807,6 @@
             musicalNotes.push(sprite);
         }
 
-        // Idle detection
         let lastInteraction = Date.now();
         let isIdle = false;
         
@@ -641,19 +818,14 @@
             lastInteraction = Date.now();
             isIdle = false;
         });
-        window.addEventListener('click', () => {
+        window.addEventListener('click', (e) => {
+            if(e.target.closest('.music-control') || e.target.closest('.start-overlay')) return;
             lastInteraction = Date.now();
             isIdle = false;
         });
 
-        // Click for confetti
         window.addEventListener('click', (event) => {
-            const mouse = new THREE.Vector2();
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, camera);
+            if(event.target.closest('.music-control') || event.target.closest('.start-overlay')) return;
             
             createConfettiExplosion(
                 (Math.random() - 0.5) * 5,
@@ -662,19 +834,9 @@
             );
         });
 
-        // Camera position
         camera.position.set(0, 5, 12);
         camera.lookAt(0, 2, 0);
 
-        // Hide loading
-        setTimeout(() => {
-            document.getElementById('loading').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('loading').style.display = 'none';
-            }, 500);
-        }, 1500);
-
-        // Animation loop
         const clock = new THREE.Clock();
         let fireworkTimer = 0;
         
@@ -682,14 +844,11 @@
             requestAnimationFrame(animate);
             
             const time = clock.getElapsedTime();
-            const delta = clock.getDelta();
             
-            // Check idle state
             if(Date.now() - lastInteraction > 2000 && !isIdle) {
                 isIdle = true;
             }
             
-            // Animate flames
             cakeData.flames.forEach(flame => {
                 const flicker = Math.sin(time * 10 + flame.offset) * 0.05;
                 flame.mesh.scale.y = 1.5 + flicker;
@@ -698,14 +857,11 @@
                 flame.light.intensity = 1 + flicker * 2;
             });
             
-            // Float cake
             cake.position.y = Math.sin(time * 0.5) * 0.1;
             
-            // Animate number 23
             number23.rotation.y = Math.sin(time * 0.3) * 0.1;
             number23.position.y = 4 + Math.sin(time * 0.8) * 0.2;
             
-            // Update sparkle trails
             sparkleTrails.forEach((trail, idx) => {
                 const history = trail.userData.history;
                 const numPos = number23.position.clone();
@@ -728,7 +884,6 @@
                 trail.geometry.attributes.position.needsUpdate = true;
             });
             
-            // Update confetti
             for(let i = confettiParticles.length - 1; i >= 0; i--) {
                 const p = confettiParticles[i];
                 p.position.add(p.userData.velocity);
@@ -745,11 +900,10 @@
                 }
             }
             
-            // Update fireworks
             for(let i = fireworks.length - 1; i >= 0; i--) {
                 const p = fireworks[i];
                 p.position.add(p.userData.velocity);
-                p.userData.velocity.y -= 0.01; // gravity
+                p.userData.velocity.y -= 0.01;
                 p.userData.life -= p.userData.decay;
                 p.material.opacity = p.userData.life;
                 p.scale.setScalar(p.userData.life);
@@ -760,7 +914,6 @@
                 }
             }
             
-            // Random fireworks
             fireworkTimer += 0.016;
             if(fireworkTimer > 3) {
                 fireworkTimer = 0;
@@ -771,9 +924,7 @@
                 );
             }
             
-            // Update butterflies (only when idle)
             if(isIdle) {
-                // Spawn new butterflies occasionally
                 if(butterflies.length < 15 && Math.random() < 0.02) {
                     createButterfly();
                 }
@@ -783,12 +934,10 @@
                     wings[0].rotation.y = -0.3 + Math.sin(time * butterfly.userData.wingSpeed + butterfly.userData.phase) * 0.3;
                     wings[1].rotation.y = 0.3 - Math.sin(time * butterfly.userData.wingSpeed + butterfly.userData.phase) * 0.3;
                     
-                    // Move towards target
                     const dir = new THREE.Vector3().subVectors(butterfly.userData.target, butterfly.position).normalize();
                     butterfly.position.add(dir.multiplyScalar(0.02));
                     butterfly.lookAt(butterfly.userData.target);
                     
-                    // New target if close
                     if(butterfly.position.distanceTo(butterfly.userData.target) < 0.5) {
                         butterfly.userData.target.set(
                             (Math.random() - 0.5) * 15,
@@ -797,19 +946,16 @@
                         );
                     }
                     
-                    // Remove if too far
                     if(butterfly.position.length() > 25) {
                         scene.remove(butterfly);
                         butterflies.splice(idx, 1);
                     }
                 });
             } else {
-                // Remove butterflies when active
                 butterflies.forEach(b => scene.remove(b));
                 butterflies.length = 0;
             }
             
-            // Update musical notes
             if(Math.random() < 0.03) {
                 createMusicalNote();
             }
@@ -829,14 +975,12 @@
                 }
             }
             
-            // Rotate stars
             stars.rotation.y = time * 0.02;
             
             controls.update();
             renderer.render(scene, camera);
         }
 
-        // Handle resize
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
